@@ -26,8 +26,10 @@ class Container extends Element_Base {
 	 * @var \Elementor\Core\Kits\Documents\Kit
 	 */
 	private $active_kit;
-	private $logical_dimensions_inline_start;
-	private $logical_dimensions_inline_end;
+
+	protected function is_dynamic_content(): bool {
+		return false;
+	}
 
 	/**
 	 * Container constructor.
@@ -41,8 +43,6 @@ class Container extends Element_Base {
 		parent::__construct( $data, $args );
 
 		$this->active_kit = Plugin::$instance->kits_manager->get_active_kit();
-		$this->logical_dimensions_inline_start = is_rtl() ? '{{RIGHT}}{{UNIT}}' : '{{LEFT}}{{UNIT}}';
-		$this->logical_dimensions_inline_end = is_rtl() ? '{{LEFT}}{{UNIT}}' : '{{RIGHT}}{{UNIT}}';
 	}
 
 	/**
@@ -82,13 +82,7 @@ class Container extends Element_Base {
 	}
 
 	public function get_keywords() {
-		$keywords = [ 'Container', 'Flex', 'Flexbox', 'Flexbox Container', 'Layout' ];
-
-		if ( Plugin::$instance->experiments->is_feature_active( 'container_grid' ) ) {
-			array_push( $keywords, 'Grid', 'Grid Container', 'CSS Grid' );
-		}
-
-		return $keywords;
+		return [ 'Container', 'Flex', 'Flexbox', 'Flexbox Container', 'Grid', 'Grid Container', 'CSS Grid', 'Layout' ];
 	}
 
 	public function get_panel_presets() {
@@ -132,16 +126,6 @@ class Container extends Element_Base {
 				$is_nested_class_name,
 			],
 		] );
-
-		if ( $this->get_data( 'isInner' ) ) {
-			return;
-		}
-
-		// Todo: Remove in version 3.21.0: https://elementor.atlassian.net/browse/ED-11884.
-		// Remove together with support for physical properties inside the Mega Menu & Nested Carousel widgets.
-		$this->add_render_attribute( '_wrapper', [
-			'data-core-v316-plus' => 'true',
-		] );
 	}
 
 	/**
@@ -181,7 +165,7 @@ class Container extends Element_Base {
 			view.addRenderAttribute( 'background-video-container', 'class', 'elementor-background-video-container' );
 
 			if ( ! settings.background_play_on_mobile ) {
-				view.addRenderAttribute( 'background-video-container', 'class', 'elementor-hidden-phone' );
+				view.addRenderAttribute( 'background-video-container', 'class', 'elementor-hidden-mobile' );
 			}
 			#>
 			<div {{{ view.getRenderAttributeString( 'background-video-container' ) }}}>
@@ -218,7 +202,7 @@ class Container extends Element_Base {
 		$this->add_render_attribute( 'background-video-container', 'class', 'elementor-background-video-container' );
 
 		if ( ! $settings['background_play_on_mobile'] ) {
-			$this->add_render_attribute( 'background-video-container', 'class', 'elementor-hidden-phone' );
+			$this->add_render_attribute( 'background-video-container', 'class', 'elementor-hidden-mobile' );
 		}
 
 		?><div <?php $this->print_render_attribute_string( 'background-video-container' ); ?>>
@@ -346,65 +330,6 @@ class Container extends Element_Base {
 		return Plugin::$instance->widgets_manager->get_widget_types( $element_data['widgetType'] );
 	}
 
-	protected function get_flex_control_options( $is_container_grid_active ) {
-		$flex_control_options = [
-			'name' => 'flex',
-			'selector' => '{{WRAPPER}}',
-			'fields_options' => [
-				'gap' => [
-					'label' => esc_html__( 'Gaps', 'elementor' ),
-					'device_args' => [
-						Breakpoints_Manager::BREAKPOINT_KEY_DESKTOP => [
-							// Use the default gap from the kit as a placeholder.
-							'placeholder' => $this->active_kit->get_settings_for_display( 'space_between_widgets' ),
-						],
-					],
-				],
-			],
-		];
-
-		if ( $is_container_grid_active ) {
-			$flex_control_options['condition'] = [
-				'container_type' => 'flex',
-			];
-		}
-
-		return $flex_control_options;
-	}
-
-	protected function get_container_type_control_options( $is_container_grid_active ) {
-		if ( $is_container_grid_active ) {
-			return [
-				'label' => esc_html__( 'Container Layout', 'elementor' ),
-				'type' => Controls_Manager::SELECT,
-				'default' => 'flex',
-				'prefix_class' => 'e-',
-				'options' => [
-					'flex' => esc_html__( 'Flexbox', 'elementor' ),
-					'grid' => esc_html__( 'Grid', 'elementor' ),
-				],
-				'selectors' => [
-					'{{WRAPPER}}' => '--display: {{VALUE}}',
-				],
-				'separator' => 'after',
-				'frontend_available' => true,
-			];
-		}
-
-		// TODO: This can be removed when the 'Container Grid Experiment' is merged.
-		return [
-			'label' => esc_html__( 'Container Layout', 'elementor' ),
-			'type' => Controls_Manager::HIDDEN,
-			'render_type' => 'none',
-			'default' => 'flex',
-			'prefix_class' => 'e-',
-			'selectors' => [
-				'{{WRAPPER}}' => '--display: {{VALUE}}',
-			],
-			'separator' => 'after',
-		];
-	}
-
 	/**
 	 * Register the Container's layout controls.
 	 *
@@ -427,11 +352,23 @@ class Container extends Element_Base {
 			$min_affected_device = Breakpoints_Manager::BREAKPOINT_KEY_TABLET;
 		}
 
-		$is_container_grid_active = Plugin::$instance->experiments->is_feature_active( 'container_grid' );
-
 		$this->add_control(
 			'container_type',
-			$this->get_container_type_control_options( $is_container_grid_active )
+			[
+				'label' => esc_html__( 'Container Layout', 'elementor' ),
+				'type' => Controls_Manager::SELECT,
+				'default' => 'flex',
+				'prefix_class' => 'e-',
+				'options' => [
+					'flex' => esc_html__( 'Flexbox', 'elementor' ),
+					'grid' => esc_html__( 'Grid', 'elementor' ),
+				],
+				'selectors' => [
+					'{{WRAPPER}}' => '--display: {{VALUE}}',
+				],
+				'separator' => 'after',
+				'editor_available' => true,
+			]
 		);
 
 		$this->add_control(
@@ -446,7 +383,7 @@ class Container extends Element_Base {
 				],
 				'render_type' => 'template',
 				'prefix_class' => 'e-con-',
-				'frontend_available' => true,
+				'editor_available' => true,
 			]
 		);
 
@@ -459,14 +396,6 @@ class Container extends Element_Base {
 					'min' => 500,
 					'max' => 1600,
 				],
-				'%' => [
-					'min' => 0,
-					'max' => 100,
-				],
-				'vw' => [
-					'min' => 0,
-					'max' => 100,
-				],
 			],
 			'default' => [
 				'unit' => '%',
@@ -478,7 +407,6 @@ class Container extends Element_Base {
 				Breakpoints_Manager::BREAKPOINT_KEY_TABLET => $min_affected_device,
 				Breakpoints_Manager::BREAKPOINT_KEY_MOBILE_EXTRA => $min_affected_device,
 			],
-			'separator' => 'none',
 		];
 
 		$this->add_responsive_control(
@@ -544,12 +472,7 @@ class Container extends Element_Base {
 				'size_units' => [ 'px', 'em', 'rem', 'vh', 'custom' ],
 				'range' => [
 					'px' => [
-						'min' => 0,
 						'max' => 1440,
-					],
-					'vh' => [
-						'min' => 0,
-						'max' => 100,
 					],
 				],
 				'description' => sprintf(
@@ -564,21 +487,36 @@ class Container extends Element_Base {
 
 		$this->add_group_control(
 			Group_Control_Flex_Container::get_type(),
-			$this->get_flex_control_options( $is_container_grid_active )
+			[
+				'name' => 'flex',
+				'selector' => '{{WRAPPER}}',
+				'fields_options' => [
+					'gap' => [
+						'label' => esc_html__( 'Gaps', 'elementor' ),
+						'device_args' => [
+							Breakpoints_Manager::BREAKPOINT_KEY_DESKTOP => [
+								// Use the default gap from the kit as a placeholder.
+								'placeholder' => $this->active_kit->get_settings_for_display( 'space_between_widgets' ),
+							],
+						],
+					],
+				],
+				'condition' => [
+					'container_type' => [ 'flex' ],
+				],
+			]
 		);
 
-		if ( $is_container_grid_active ) {
-			$this->add_group_control(
-				Group_Control_Grid_Container::get_type(),
-				[
-					'name' => 'grid',
-					'selector' => '{{WRAPPER}}',
-					'condition' => [
-						'container_type' => [ 'grid' ],
-					],
-				]
-			);
-		}
+		$this->add_group_control(
+			Group_Control_Grid_Container::get_type(),
+			[
+				'name' => 'grid',
+				'selector' => '{{WRAPPER}}',
+				'condition' => [
+					'container_type' => [ 'grid' ],
+				],
+			]
+		);
 
 		$this->end_controls_section();
 	}
@@ -642,9 +580,9 @@ class Container extends Element_Base {
 		$this->add_control(
 			'link_note',
 			[
-				'type' => Controls_Manager::RAW_HTML,
-				'content_classes' => 'elementor-panel-alert elementor-panel-alert-warning',
-				'raw' => esc_html__( 'Don’t add links to elements nested in this container - it will break the layout.', 'elementor' ),
+				'type' => Controls_Manager::ALERT,
+				'alert_type' => 'warning',
+				'content' => esc_html__( 'Don’t add links to elements nested in this container - it will break the layout.', 'elementor' ),
 				'condition' => [
 					'html_tag' => 'a',
 				],
@@ -714,10 +652,27 @@ class Container extends Element_Base {
 					'background' => [
 						'frontend_available' => true,
 					],
-					'image' => [
-						'background_lazyload' => [
-							'active' => true,
-							'keys' => [ 'background_image', 'url' ],
+				],
+			]
+		);
+
+		$this->add_control(
+			'handle_slideshow_asset_loading',
+			[
+				'type' => Controls_Manager::HIDDEN,
+				'assets' => [
+					'styles' => [
+						[
+							'name' => 'e-swiper',
+							'conditions' => [
+								'terms' => [
+									[
+										'name' => 'background_background',
+										'operator' => '===',
+										'value' => 'slideshow',
+									],
+								],
+							],
 						],
 					],
 				],
@@ -747,13 +702,23 @@ class Container extends Element_Base {
 		$this->add_control(
 			'background_hover_transition',
 			[
-				'label' => esc_html__( 'Transition Duration', 'elementor' ),
+				'label' => esc_html__( 'Transition Duration', 'elementor' ) . ' (s)',
 				'type' => Controls_Manager::SLIDER,
 				'default' => [
 					'size' => 0.3,
 				],
+				'range' => [
+					'px' => [
+						'min' => 0,
+						'max' => 3,
+						'step' => 0.1,
+					],
+				],
 				'render_type' => 'ui',
 				'separator' => 'before',
+				'condition' => [
+					'background_hover_background' => [ 'classic', 'gradient' ],
+				],
 				'selectors' => [
 					'{{WRAPPER}}' => '--background-transition: {{SIZE}}s;',
 				],
@@ -805,12 +770,6 @@ class Container extends Element_Base {
 						'selectors' => [
 							// Hack to set the `::before` content in order to render it only when there is a background overlay.
 							$background_overlay_selector => '--background-overlay: \'\';',
-						],
-					],
-					'image' => [
-						'background_lazyload' => [
-							'active' => true,
-							'keys' => [ 'background_overlay_image', 'url' ],
 						],
 					],
 				],
@@ -954,30 +913,34 @@ class Container extends Element_Base {
 			]
 		);
 
-		$this->add_group_control(
-			Group_Control_Css_Filter::get_type(),
-			[
-				'name' => 'css_filters_hover',
-				'selector' => '{{WRAPPER}}:hover::before',
-			]
-		);
-
 		$this->add_control(
 			'background_overlay_hover_transition',
 			[
-				'label' => esc_html__( 'Transition Duration', 'elementor' ),
+				'label' => esc_html__( 'Transition Duration', 'elementor' ) . ' (s)',
 				'type' => Controls_Manager::SLIDER,
 				'range' => [
 					'px' => [
+						'min' => 0,
 						'max' => 3,
 						'step' => 0.1,
 					],
 				],
 				'render_type' => 'ui',
 				'separator' => 'before',
+				'condition' => [
+					'background_overlay_hover_background' => [ 'classic', 'gradient' ],
+				],
 				'selectors' => [
 					'{{WRAPPER}}, {{WRAPPER}}::before' => '--overlay-transition: {{SIZE}}s;',
 				],
+			]
+		);
+
+		$this->add_group_control(
+			Group_Control_Css_Filter::get_type(),
+			[
+				'name' => 'css_filters_hover',
+				'selector' => '{{WRAPPER}}:hover::before',
 			]
 		);
 
@@ -1022,7 +985,7 @@ class Container extends Element_Base {
 				'fields_options' => [
 					'width' => [
 						'selectors' => [
-							'{{SELECTOR}}' => "border-width: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; --border-block-start-width: {{TOP}}{{UNIT}}; --border-inline-end-width: $this->logical_dimensions_inline_end; --border-block-end-width: {{BOTTOM}}{{UNIT}}; --border-inline-start-width: $this->logical_dimensions_inline_start;",
+							'{{SELECTOR}}' => 'border-width: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; --border-top-width: {{TOP}}{{UNIT}}; --border-right-width: {{RIGHT}}{{UNIT}}; --border-bottom-width: {{BOTTOM}}{{UNIT}}; --border-left-width: {{LEFT}}{{UNIT}};',
 						],
 					],
 					'color' => [
@@ -1078,7 +1041,7 @@ class Container extends Element_Base {
 				'fields_options' => [
 					'width' => [
 						'selectors' => [
-							'{{SELECTOR}}' => "border-width: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; --border-block-start-width: {{TOP}}{{UNIT}}; --border-inline-end-width: $this->logical_dimensions_inline_end; --border-block-end-width: {{BOTTOM}}{{UNIT}}; --border-inline-start-width: $this->logical_dimensions_inline_start;",
+							'{{SELECTOR}}' => 'border-width: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; --border-top-width: {{TOP}}{{UNIT}}; --border-right-width: {{RIGHT}}{{UNIT}}; --border-bottom-width: {{BOTTOM}}{{UNIT}}; --border-left-width: {{LEFT}}{{UNIT}};',
 						],
 					],
 					'color' => [
@@ -1097,7 +1060,7 @@ class Container extends Element_Base {
 				'type' => Controls_Manager::DIMENSIONS,
 				'size_units' => [ 'px', '%', 'em', 'rem', 'custom' ],
 				'selectors' => [
-					'{{WRAPPER}}:hover' => "--border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; --border-top-left-radius: {{TOP}}{{UNIT}}; --border-top-right-radius: $this->logical_dimensions_inline_end; --border-bottom-right-radius: {{BOTTOM}}{{UNIT}}; --border-bottom-left-radius: $this->logical_dimensions_inline_start;",
+					'{{WRAPPER}}:hover' => '--border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; --border-top-left-radius: {{TOP}}{{UNIT}}; --border-top-right-radius: {{RIGHT}}{{UNIT}}; --border-bottom-right-radius: {{BOTTOM}}{{UNIT}}; --border-bottom-left-radius: {{LEFT}}{{UNIT}};',
 				],
 			]
 		);
@@ -1113,7 +1076,7 @@ class Container extends Element_Base {
 		$this->add_control(
 			'border_hover_transition',
 			[
-				'label' => esc_html__( 'Transition Duration', 'elementor' ),
+				'label' => esc_html__( 'Transition Duration', 'elementor' ) . ' (s)',
 				'type' => Controls_Manager::SLIDER,
 				'separator' => 'before',
 				'default' => [
@@ -1121,6 +1084,7 @@ class Container extends Element_Base {
 				],
 				'range' => [
 					'px' => [
+						'min' => 0,
 						'max' => 3,
 						'step' => 0.1,
 					],
@@ -1129,12 +1093,27 @@ class Container extends Element_Base {
 					'relation' => 'or',
 					'terms' => [
 						[
-							'name' => 'background_background',
+							'name' => 'border_hover_border',
 							'operator' => '!==',
 							'value' => '',
 						],
 						[
-							'name' => 'border_border',
+							'name' => 'border_radius_hover[top]',
+							'operator' => '!==',
+							'value' => '',
+						],
+						[
+							'name' => 'border_radius_hover[right]',
+							'operator' => '!==',
+							'value' => '',
+						],
+						[
+							'name' => 'border_radius_hover[bottom]',
+							'operator' => '!==',
+							'value' => '',
+						],
+						[
+							'name' => 'border_radius_hover[left]',
 							'operator' => '!==',
 							'value' => '',
 						],
@@ -1199,6 +1178,22 @@ class Container extends Element_Base {
 					'options' => $shapes_options,
 					'render_type' => 'none',
 					'frontend_available' => true,
+					'assets' => [
+						'styles' => [
+							[
+								'name' => 'e-shapes',
+								'conditions' => [
+									'terms' => [
+										[
+											'name' => $base_control_key,
+											'operator' => '!==',
+											'value' => '',
+										],
+									],
+								],
+							],
+						],
+					],
 				]
 			);
 
@@ -1221,6 +1216,7 @@ class Container extends Element_Base {
 				[
 					'label' => esc_html__( 'Width', 'elementor' ),
 					'type' => Controls_Manager::SLIDER,
+					'size_units' => [ '%', 'vw', 'custom' ],
 					'default' => [
 						'unit' => '%',
 					],
@@ -1232,6 +1228,10 @@ class Container extends Element_Base {
 					],
 					'range' => [
 						'%' => [
+							'min' => 100,
+							'max' => 300,
+						],
+						'vw' => [
 							'min' => 100,
 							'max' => 300,
 						],
@@ -1250,9 +1250,16 @@ class Container extends Element_Base {
 				[
 					'label' => esc_html__( 'Height', 'elementor' ),
 					'type' => Controls_Manager::SLIDER,
+					'size_units' => [ 'px', 'em', 'rem', 'custom' ],
 					'range' => [
 						'px' => [
 							'max' => 500,
+						],
+						'em' => [
+							'max' => 50,
+						],
+						'rem' => [
+							'max' => 50,
 						],
 					],
 					'condition' => [
@@ -1348,7 +1355,7 @@ class Container extends Element_Base {
 				'type' => Controls_Manager::DIMENSIONS,
 				'size_units' => [ 'px', '%', 'em', 'rem', 'vw', 'custom' ],
 				'selectors' => [
-					'{{WRAPPER}}' => "--margin-block-start: {{TOP}}{{UNIT}}; --margin-block-end: {{BOTTOM}}{{UNIT}}; --margin-inline-start: $this->logical_dimensions_inline_start; --margin-inline-end: $this->logical_dimensions_inline_end;",
+					'{{WRAPPER}}' => '--margin-top: {{TOP}}{{UNIT}}; --margin-bottom: {{BOTTOM}}{{UNIT}}; --margin-left: {{LEFT}}{{UNIT}}; --margin-right: {{RIGHT}}{{UNIT}};',
 				],
 			]
 		);
@@ -1360,7 +1367,7 @@ class Container extends Element_Base {
 				'type' => Controls_Manager::DIMENSIONS,
 				'size_units' => [ 'px', '%', 'em', 'rem', 'vw', 'custom' ],
 				'selectors' => [
-					'{{WRAPPER}}' => "--padding-block-start: {{TOP}}{{UNIT}}; --padding-block-end: {{BOTTOM}}{{UNIT}}; --padding-inline-start: $this->logical_dimensions_inline_start; --padding-inline-end: $this->logical_dimensions_inline_end;",
+					'{{WRAPPER}}' => '--padding-top: {{TOP}}{{UNIT}}; --padding-bottom: {{BOTTOM}}{{UNIT}}; --padding-left: {{LEFT}}{{UNIT}}; --padding-right: {{RIGHT}}{{UNIT}};',
 				],
 			]
 		);
@@ -1385,9 +1392,10 @@ class Container extends Element_Base {
 		$this->add_control(
 			'position_description',
 			[
-				'raw' => '<strong>' . esc_html__( 'Please note!', 'elementor' ) . '</strong> ' . esc_html__( 'Custom positioning is not considered best practice for responsive web design and should not be used too frequently.', 'elementor' ),
-				'type' => Controls_Manager::RAW_HTML,
-				'content_classes' => 'elementor-panel-alert elementor-panel-alert-warning',
+				'type' => Controls_Manager::ALERT,
+				'alert_type' => 'warning',
+				'heading' => esc_html__( 'Please note!', 'elementor' ),
+				'content' => esc_html__( 'Custom positioning is not considered best practice for responsive web design and should not be used too frequently.', 'elementor' ),
 				'render_type' => 'ui',
 				'condition' => [
 					'position!' => '',
@@ -1455,7 +1463,6 @@ class Container extends Element_Base {
 					'px' => [
 						'min' => -1000,
 						'max' => 1000,
-						'step' => 1,
 					],
 					'%' => [
 						'min' => -200,
@@ -1471,7 +1478,7 @@ class Container extends Element_Base {
 					],
 				],
 				'default' => [
-					'size' => '0',
+					'size' => 0,
 				],
 				'size_units' => [ 'px', '%', 'em', 'rem', 'vw', 'vh', 'custom' ],
 				'selectors' => [
@@ -1494,7 +1501,6 @@ class Container extends Element_Base {
 					'px' => [
 						'min' => -1000,
 						'max' => 1000,
-						'step' => 0.1,
 					],
 					'%' => [
 						'min' => -200,
@@ -1510,7 +1516,7 @@ class Container extends Element_Base {
 					],
 				],
 				'default' => [
-					'size' => '0',
+					'size' => 0,
 				],
 				'size_units' => [ 'px', '%', 'em', 'rem', 'vw', 'vh', 'custom' ],
 				'selectors' => [
@@ -1557,7 +1563,6 @@ class Container extends Element_Base {
 					'px' => [
 						'min' => -1000,
 						'max' => 1000,
-						'step' => 1,
 					],
 					'%' => [
 						'min' => -200,
@@ -1574,7 +1579,7 @@ class Container extends Element_Base {
 				],
 				'size_units' => [ 'px', '%', 'em', 'rem', 'vh', 'vw', 'custom' ],
 				'default' => [
-					'size' => '0',
+					'size' => 0,
 				],
 				'selectors' => [
 					'{{WRAPPER}}' => 'top: {{SIZE}}{{UNIT}}',
@@ -1595,7 +1600,6 @@ class Container extends Element_Base {
 					'px' => [
 						'min' => -1000,
 						'max' => 1000,
-						'step' => 1,
 					],
 					'%' => [
 						'min' => -200,
@@ -1612,7 +1616,7 @@ class Container extends Element_Base {
 				],
 				'size_units' => [ 'px', '%', 'em', 'rem', 'vh', 'vw', 'custom' ],
 				'default' => [
-					'size' => '0',
+					'size' => 0,
 				],
 				'selectors' => [
 					'{{WRAPPER}}' => 'bottom: {{SIZE}}{{UNIT}}',
@@ -1672,6 +1676,8 @@ class Container extends Element_Base {
 			]
 		);
 
+		Plugin::$instance->controls_manager->add_display_conditions_controls( $this );
+
 		$this->end_controls_section();
 	}
 
@@ -1688,6 +1694,8 @@ class Container extends Element_Base {
 				'tab' => Controls_Manager::TAB_ADVANCED,
 			]
 		);
+
+		Plugin::$instance->controls_manager->add_motion_effects_promotion_control( $this );
 
 		$this->add_responsive_control(
 			'animation',
@@ -1806,9 +1814,9 @@ class Container extends Element_Base {
 			$container->add_control(
 				'transform_sticky_notice',
 				[
-					'type' => Controls_Manager::RAW_HTML,
-					'raw' => esc_html__( 'Note: Avoid applying transform properties on sticky containers. Doing so might cause unexpected results.', 'elementor' ),
-					'content_classes' => 'elementor-panel-alert elementor-panel-alert-warning',
+					'type' => Controls_Manager::ALERT,
+					'alert_type' => 'warning',
+					'content' => esc_html__( 'Note: Avoid applying transform properties on sticky containers. Doing so might cause unexpected results.', 'elementor' ),
 				]
 			);
 		} );
@@ -1845,7 +1853,13 @@ class Container extends Element_Base {
 					? $control_name . '_' . $breakpoint
 					: $control_name;
 
-			if ( isset( $element['settings'][ $control ] ) ) {
+			if ( ! isset( $element['settings'][ $control ] ) ) {
+				continue;
+			}
+
+			$already_using_gaps_control = isset( $element['settings'][ $control ]['isLinked'] ); // Slider control won't have the 'isLinked' property.
+
+			if ( ! $already_using_gaps_control ) {
 				$old_size = strval( $element['settings'][ $control ]['size'] );
 
 				$element['settings'][ $control ]['column'] = $old_size;

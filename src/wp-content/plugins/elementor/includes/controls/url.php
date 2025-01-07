@@ -72,8 +72,11 @@ class Control_URL extends Control_Base_Multiple {
 				'categories' => [ TagsModule::URL_CATEGORY ],
 				'property' => 'url',
 			],
-			'custom_attributes_description' => esc_html__( 'Set custom attributes for the link element. Separate attribute keys from values using the | (pipe) character. Separate key-value pairs with a comma.', 'elementor' )
-			. ' <a href="https://go.elementor.com/panel-link-custom-attributes/" target="_blank">' . esc_html__( 'Learn More', 'elementor' ) . '</a>',
+			'custom_attributes_description' => sprintf(
+				'%1$s <a target="_blank" href="https://go.elementor.com/panel-link-custom-attributes/">%2$s</a>',
+				esc_html__( 'Set custom attributes for the link element. Separate attribute keys from values using the | (pipe) character. Separate key-value pairs with a comma.', 'elementor' ),
+				esc_html__( 'Learn more', 'elementor' )
+			),
 		];
 	}
 
@@ -97,9 +100,8 @@ class Control_URL extends Control_Base_Multiple {
 				<?php // PHPCS - Nonces don't require escaping. ?>
 				<input id="_ajax_linking_nonce" type="hidden" value="<?php echo wp_create_nonce( 'internal-linking' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" />
 				<# if ( !! data.options ) { #>
-				<button class="elementor-control-url-more tooltip-target elementor-control-unit-1" data-tooltip="<?php echo esc_attr__( 'Link Options', 'elementor' ); ?>">
+				<button class="elementor-control-url-more tooltip-target elementor-control-unit-1" data-tooltip="<?php echo esc_attr__( 'Link Options', 'elementor' ); ?>" aria-label="<?php echo esc_attr__( 'Link Options', 'elementor' ); ?>">
 					<i class="eicon-cog" aria-hidden="true"></i>
-					<span class="elementor-screen-only"><?php echo esc_html__( 'Link Options', 'elementor' ); ?></span>
 				</button>
 				<# } #>
 			</div>

@@ -2,6 +2,7 @@
 namespace Elementor;
 
 use Elementor\Modules\DynamicTags\Module as TagsModule;
+use Elementor\Modules\Promotions\Controls\Promotion_Control;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
@@ -86,6 +87,28 @@ class Widget_Video extends Widget_Base {
 	 */
 	public function get_keywords() {
 		return [ 'video', 'player', 'embed', 'youtube', 'vimeo', 'dailymotion', 'videopress' ];
+	}
+
+	protected function is_dynamic_content(): bool {
+		return false;
+	}
+
+	/**
+	 * Get style dependencies.
+	 *
+	 * Retrieve the list of style dependencies the widget requires.
+	 *
+	 * @since 3.24.0
+	 * @access public
+	 *
+	 * @return array Widget style dependencies.
+	 */
+	public function get_style_depends(): array {
+		return [ 'widget-video' ];
+	}
+
+	public function has_widget_inner_wrapper(): bool {
+		return ! Plugin::$instance->experiments->is_feature_active( 'e_optimized_markup' );
 	}
 
 	/**
@@ -314,21 +337,14 @@ class Widget_Video extends Widget_Base {
 			'autoplay',
 			[
 				'label' => esc_html__( 'Autoplay', 'elementor' ),
+				'description' => sprintf(
+					/* translators: 1: `<a>` opening tag, 2: `</a>` closing tag. */
+					esc_html__( 'Note: Autoplay is affected by %1$s Google’s Autoplay policy %2$s on Chrome browsers.', 'elementor' ),
+					'<a href="https://developers.google.com/web/updates/2017/09/autoplay-policy-changes" target="_blank">',
+					'</a>'
+				),
 				'type' => Controls_Manager::SWITCHER,
 				'frontend_available' => true,
-				'conditions' => [
-					'relation' => 'or',
-					'terms' => [
-						[
-							'name' => 'show_image_overlay',
-							'value' => '',
-						],
-						[
-							'name' => 'image_overlay[url]',
-							'value' => '',
-						],
-					],
-				],
 			]
 		);
 
@@ -563,9 +579,9 @@ class Widget_Video extends Widget_Base {
 					'none' => esc_html__( 'None', 'elementor' ),
 				],
 				'description' => sprintf(
-					esc_html__( 'Preload attribute lets you specify how the video should be loaded when the page loads. %1$sLearn More%2$s', 'elementor' ),
-					'<a target="_blank" href="https://go.elementor.com/preload-video/">',
-					'</a>'
+					'%1$s <a target="_blank" href="https://go.elementor.com/preload-video/">%2$s</a>',
+					esc_html__( 'Preload attribute lets you specify how the video should be loaded when the page loads.', 'elementor' ),
+					esc_html__( 'Learn more', 'elementor' ),
 				),
 				'default' => 'metadata',
 				'condition' => [
@@ -589,14 +605,15 @@ class Widget_Video extends Widget_Base {
 			]
 		);
 
-		$this->add_control(
-			'view',
-			[
-				'label' => esc_html__( 'View', 'elementor' ),
-				'type' => Controls_Manager::HIDDEN,
-				'default' => 'youtube',
-			]
-		);
+		if ( ! Utils::has_pro() ) {
+			$this->add_control(
+				Utils::VIDEO_PLAYLIST . '_promotion',
+				[
+					'label' => esc_html__( 'Video Playlist widget', 'elementor' ),
+					'type' => Promotion_Control::TYPE,
+				]
+			);
+		}
 
 		$this->end_controls_section();
 
@@ -641,7 +658,6 @@ class Widget_Video extends Widget_Base {
 			[
 				'name' => 'image_overlay', // Usage: `{name}_size` and `{name}_custom_dimension`, in this case `image_overlay_size` and `image_overlay_custom_dimension`.
 				'default' => 'full',
-				'separator' => 'none',
 				'condition' => [
 					'show_image_overlay' => 'yes',
 				],
@@ -908,9 +924,9 @@ class Widget_Video extends Widget_Base {
 		$this->add_control(
 			'deprecation_warning',
 			[
-				'type' => Controls_Manager::RAW_HTML,
-				'raw' => esc_html__( 'Note: These controls have been deprecated and are only visible if they were previously in use. The video’s width and position are now set based on its aspect ratio.', 'elementor' ),
-				'content_classes' => 'elementor-panel-alert elementor-panel-alert-danger',
+				'type' => Controls_Manager::ALERT,
+				'alert_type' => 'danger',
+				'content' => esc_html__( 'Note: These controls have been deprecated and are only visible if they were previously in use. The video’s width and position are now set based on its aspect ratio.', 'elementor' ),
 				'separator' => 'before',
 				'condition' => [
 					'lightbox_video_width!' => '',
@@ -1056,12 +1072,13 @@ class Widget_Video extends Widget_Base {
 						'type' => 'video',
 						'videoType' => $settings['video_type'],
 						'url' => $lightbox_url,
+						'autoplay' => $settings['autoplay'],
 						'modalOptions' => [
 							'id' => 'elementor-lightbox-' . $this->get_id(),
 							'entranceAnimation' => $settings['lightbox_content_animation'],
 							'entranceAnimation_tablet' => $settings['lightbox_content_animation_tablet'],
 							'entranceAnimation_mobile' => $settings['lightbox_content_animation_mobile'],
-							'videoAspectRatio' => $settings['aspect_ratio'],
+							'videoAspectRatio' => $settings['aspect_ratio'] ?? '169',
 						],
 					];
 
@@ -1106,7 +1123,6 @@ class Widget_Video extends Widget_Base {
 							}
 							Icons_Manager::render_icon( $settings['play_icon'], [ 'aria-hidden' => 'true' ] );
 							?>
-							<span class="elementor-screen-only"><?php $this->print_a11y_text( $settings['image_overlay'] ); ?></span>
 						</div>
 					<?php endif; ?>
 				</div>
@@ -1118,7 +1134,7 @@ class Widget_Video extends Widget_Base {
 	/**
 	 * Render video widget as plain content.
 	 *
-	 * Override the default behavior, by printing the video URL insted of rendering it.
+	 * Override the default behavior, by printing the video URL instead of rendering it.
 	 *
 	 * @since 1.4.5
 	 * @access public
