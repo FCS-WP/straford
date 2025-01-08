@@ -6,7 +6,8 @@
  */
 :root {
   --tevily-font-sans-serif: "DM Sans", sans-serif;
-  --tevily-theme-color:     #E8604C;
+  /* --tevily-theme-color:     #E8604C; */
+  --tevily-theme-color:     #EE1C25;
   --tevily-theme-color-2:   #FAF5EE;
   --tevily-link-color:      #313041;
   --tevily-hover-color:     #E8604C;

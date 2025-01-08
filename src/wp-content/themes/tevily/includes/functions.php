@@ -53,7 +53,7 @@ function tevily_general_breadcrumbs() {
 		global $post;
 
 		$slug = $post->post_name;
-		if($slug != "terms-and-conditions"){
+		if($slug != "useful-information"){
 			$breadcrumb .= '<li><a href="' . esc_url(home_url()) . '">' . $home . '</a> ' . $delimiter . '</li> ';
 		}
 		
