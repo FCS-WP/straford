@@ -1,0 +1,118 @@
+.menu-main-menu-container ul.gva-nav-menu > li{
+    padding: 0 17px;
+}
+
+.header-mobile.header_mobile_screen{
+    .header-mobile-content{
+        .header-content-inner{
+            .header-left{
+                .logo-mobile{
+                    max-width: 120px;
+                }
+            }
+        }
+    }
+}
+
+#currency_selector{
+    select{
+        background: none;
+        outline: none;
+        border: none;
+        color: white;
+        overflow:hidden;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        option{
+            color: black;
+        }
+    }
+}
+
+
+.gsc-icon-box-styles.style-1{
+    .icon-box-content{
+        background-color: white;
+        min-height: 370px;
+    }
+}
+
+
+
+#footer{
+    .tel_footer{
+        margin-bottom: 0;
+        p{
+            margin-bottom: 0;
+            padding-bottom: 4px;
+            span{
+                color: var(--tevily-theme-color);
+                i{
+                    width: 1.25em;
+                    font-size: 14px;
+                    transition: color 0.3s;
+                }
+            }
+        }
+
+    }
+    .elementor-nav-menu--main{
+        ul{
+            li{
+                a{
+                    &:after{
+                        display: none;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+#amenities{
+    .box-content{
+        .term-item{
+            display: flex;
+            align-items: center;
+            i{
+                position: static;
+            }
+        }
+    }
+}
+
+#term{
+    .elementor-accordion{
+        box-shadow: none;
+        .elementor-tab-title{
+            padding-left: 0;
+            > span{
+                display: none;
+            }
+        }
+        .elementor-tab-content{
+            padding-left: 0;
+        }
+    }
+}
+
+#main-title{
+    position: relative;
+    .elementor-widget-heading{
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        z-index: 111;
+        transform: translateY(-50%);
+        max-width: 1156px;
+        margin: 0 auto;
+        padding: 0 10px;
+        h2{
+            color: white;
+            font-size: 36px;
+        }
+    }
+}

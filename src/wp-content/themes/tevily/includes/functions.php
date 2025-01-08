@@ -51,8 +51,12 @@ function tevily_general_breadcrumbs() {
 		$breadcrumb .= '<ol class="breadcrumb">';
 
 		global $post;
-		$breadcrumb .= '<li><a href="' . esc_url(home_url()) . '">' . $home . '</a> ' . $delimiter . '</li> ';
 
+		$slug = $post->post_name;
+		if($slug != "terms-and-conditions"){
+			$breadcrumb .= '<li><a href="' . esc_url(home_url()) . '">' . $home . '</a> ' . $delimiter . '</li> ';
+		}
+		
 		if(is_category()){
 		  
 		  	global $wp_query;
